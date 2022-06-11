@@ -1,0 +1,21 @@
+{
+  "name": "@gstreamer-rs/gstreamer-linux-x64-gnu",
+  "version": "0.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "gstreamer-rs.linux-x64-gnu.node",
+  "files": [
+    "gstreamer-rs.linux-x64-gnu.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 14"
+  },
+  "libc": [
+    "glibc"
+  ]
+}
