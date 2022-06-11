@@ -7,3 +7,8 @@ extern crate napi_derive;
 fn sum(a: i32, b: i32) -> i32 {
   a + b
 }
+
+#[napi]
+fn reverse(a: String) -> String {
+  a.chars().rev().collect()
+}
