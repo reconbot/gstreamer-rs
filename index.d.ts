@@ -5,3 +5,4 @@
 
 export function sum(a: number, b: number): number
 export function reverse(input: string): string
+export function fuckyea(): void

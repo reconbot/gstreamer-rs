@@ -236,7 +236,8 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { sum, reverse } = nativeBinding
+const { sum, reverse, fuckyea } = nativeBinding
 
 module.exports.sum = sum
 module.exports.reverse = reverse
+module.exports.fuckyea = fuckyea

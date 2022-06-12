@@ -12,3 +12,8 @@ fn sum(a: i32, b: i32) -> i32 {
 fn reverse(input: String) -> String {
   input.chars().rev().collect()
 }
+
+#[napi]
+fn fuckyea() {
+  println!("fuck yeah!")
+}
