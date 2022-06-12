@@ -109,7 +109,7 @@ jobs:
         if: ${{ matrix.settings.setup }}
         shell: bash
       - name: Setup pacman
-        uses: msys2/setup-msys2@v2
+        run: choco install msys2
         if: ${{ matrix.settings.pacman }}
       - name: Setup node x86
         if: matrix.settings.target == 'i686-pc-windows-msvc'
