@@ -3,6 +3,8 @@
 #[macro_use]
 extern crate napi_derive;
 
+mod gs_utils;
+
 #[napi]
 fn sum(a: i32, b: i32) -> i32 {
   a + b
@@ -15,5 +17,5 @@ fn reverse(input: String) -> String {
 
 #[napi]
 fn fuckyea() {
-  println!("fuck yeah!")
+  gs_utils::play()
 }
