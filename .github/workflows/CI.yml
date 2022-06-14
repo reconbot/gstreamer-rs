@@ -105,6 +105,7 @@ jobs:
         if: ${{ contains(matrix.settings.target, 'windows') }}
         with:
           update: true
+          path-type: inherit
           install: >-
             glib2-devel
             pkg-config
