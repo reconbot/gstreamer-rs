@@ -26,16 +26,19 @@ jobs:
           - host: macos-latest
             target: x86_64-apple-darwin
             build: |
+              brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav gst-rtsp-server gst-editing-services
               yarn build
               strip -x *.node
           - host: windows-latest
-            build: yarn build
+            build: |
+              yarn build
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
             build: |-
               set -e &&
+              apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav libgstrtspserver-1.0-dev libges-1.0-dev libgstreamer-plugins-bad1.0-dev &&
               yarn build --target x86_64-unknown-linux-gnu &&
               strip *.node
           - host: macos-latest
@@ -46,6 +49,7 @@ jobs:
               export CXX=$(xcrun -f clang++);
               SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
               export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+              brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav gst-rtsp-server gst-editing-services
               yarn build --target aarch64-apple-darwin
               strip -x *.node
           - host: ubuntu-latest
@@ -53,19 +57,13 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |-
               set -e &&
+              apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav libgstrtspserver-1.0-dev libges-1.0-dev libgstreamer-plugins-bad1.0-dev &&
               yarn build --target aarch64-unknown-linux-gnu &&
               aarch64-unknown-linux-gnu-strip *.node
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: |-
-              set -e &&
-              rustup target add aarch64-unknown-linux-musl &&
-              yarn build --target aarch64-unknown-linux-musl &&
-              /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip *.node
           - host: windows-latest
             target: aarch64-pc-windows-msvc
-            build: yarn build --target aarch64-pc-windows-msvc
+            build: |
+              yarn build --target aarch64-pc-windows-msvc
     name: stable - ${{ matrix.settings.target }} - node@16
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -102,16 +100,33 @@ jobs:
         with:
           path: .yarn/cache
           key: npm-cache-build-${{ matrix.settings.target }}-node@16
-      - name: Setup toolchain
-        run: ${{ matrix.settings.setup }}
-        if: ${{ matrix.settings.setup }}
-        shell: bash
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        if: ${{ contains(matrix.settings.target, 'windows') }}
+        with:
+          update: true
+          path-type: inherit
+          install: >-
+            glib2-devel
+            pkg-config
+            mingw-w64-x86_64-gstreamer
+            mingw-w64-x86_64-gst-plugins-base
+            mingw-w64-x86_64-gst-plugins-good
+            mingw-w64-x86_64-gst-plugins-bad
+            mingw-w64-x86_64-gst-plugins-ugly
+            mingw-w64-x86_64-gst-libav
+            mingw-w64-x86_64-gst-rtsp-server
       - name: Setup node x86
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         run: yarn config set supportedArchitectures.cpu "ia32"
-        shell: bash
+        shell: msys2 {0}
       - name: Install dependencies
         run: yarn install
+        if: ${{ !contains(matrix.settings.target, 'windows') }}
+      - name: Install dependencies Windows
+        run: yarn install
+        shell: msys2 {0}
+        if: ${{ contains(matrix.settings.target, 'windows') }}
       - name: Setup node x86
         uses: actions/setup-node@v3
         if: matrix.settings.target == 'i686-pc-windows-msvc'
@@ -128,8 +143,8 @@ jobs:
           options: '--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/root/.cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/root/.cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/root/.cargo/registry/index -v ${{ github.workspace }}:/build -w /build'
           run: ${{ matrix.settings.build }}
       - name: Build
-        run: ${{ matrix.settings.build }}
         if: ${{ !matrix.settings.docker }}
+        run: ${{ matrix.settings.build }}
         shell: bash
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -148,7 +163,6 @@ jobs:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
         node:
-          - '14'
           - '16'
           - '18'
     runs-on: ${{ matrix.settings.host }}
@@ -185,7 +199,6 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - '14'
           - '16'
           - '18'
     runs-on: ubuntu-latest
@@ -222,7 +235,6 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - '14'
           - '16'
           - '18'
     runs-on: ubuntu-latest
@@ -256,41 +268,6 @@ jobs:
             set -e
             yarn test
             ls -la
-  test-linux-aarch64-musl-binding:
-    name: Test bindings on aarch64-unknown-linux-musl - node@${{ matrix.node }}
-    needs:
-      - build
-    runs-on: ubuntu-latest
-    steps:
-      - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
-      - uses: actions/checkout@v3
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-aarch64-unknown-linux-musl
-          path: .
-      - name: List packages
-        run: ls -R .
-        shell: bash
-      - name: Cache NPM dependencies
-        uses: actions/cache@v3
-        with:
-          path: .yarn/cache
-          key: npm-cache-test-linux-aarch64-musl-${{ matrix.node }}
-      - name: Install dependencies
-        run: |
-          yarn config set supportedArchitectures.cpu "arm64"
-          yarn config set supportedArchitectures.libc "musl"
-          yarn install
-      - name: Setup and run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: multiarch/alpine:aarch64-latest-stable
-          options: '-v ${{ github.workspace }}:/build -w /build'
-          run: |
-            set -e
-            apk add nodejs npm yarn
-            yarn test
   publish:
     name: Publish
     runs-on: ubuntu-latest
@@ -298,7 +275,6 @@ jobs:
       - test-macOS-windows-binding
       - test-linux-x64-gnu-binding
       - test-linux-aarch64-gnu-binding
-      - test-linux-aarch64-musl-binding
     steps:
       - uses: actions/checkout@v3
       - name: Setup node
