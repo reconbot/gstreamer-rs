@@ -32,9 +32,7 @@ jobs:
           - host: windows-latest
             build: |
               yarn build
-            pacman: true
             target: x86_64-pc-windows-msvc
-            shell: msys2 {0}
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -66,8 +64,6 @@ jobs:
             target: aarch64-pc-windows-msvc
             build: |
               yarn build --target aarch64-pc-windows-msvc
-            pacman: true
-            shell: msys2 {0}
     name: stable - ${{ matrix.settings.target }} - node@16
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -106,7 +102,7 @@ jobs:
           key: npm-cache-build-${{ matrix.settings.target }}-node@16
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
-        if: ${{ matrix.settings.pacman }}
+        if: ${{ contains(matrix.settings.target, 'windows') }}
         with:
           update: true
           install: >-
@@ -122,10 +118,14 @@ jobs:
       - name: Setup node x86
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         run: yarn config set supportedArchitectures.cpu "ia32"
-        shell: ${{ matrix.settings.shell || bash }}
+        shell: msys2 {0}
       - name: Install dependencies
         run: yarn install
-        shell: ${{ matrix.settings.shell || bash }}
+        if: ${{ !contains(matrix.settings.target, 'windows') }}
+      - name: Install dependencies Windows
+        run: yarn install
+        shell: msys2 {0}
+        if: ${{ contains(matrix.settings.target, 'windows') }}
       - name: Setup node x86
         uses: actions/setup-node@v3
         if: matrix.settings.target == 'i686-pc-windows-msvc'
